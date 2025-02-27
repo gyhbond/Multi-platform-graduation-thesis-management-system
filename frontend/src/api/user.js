@@ -1,4 +1,4 @@
-import request from './index'
+import request from '../utils/request'
 
 export const getProfile = () => {
   return request({
@@ -17,7 +17,7 @@ export const updateProfile = (data) => {
 
 export const getTeacherInfo = (teacherId) => {
   return request({
-    url: `/api/user/teacher/${teacherId}`,
+    url: `/api/user/teachers/${teacherId}`,
     method: 'get'
   })
 } 

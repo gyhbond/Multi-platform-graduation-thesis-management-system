@@ -20,13 +20,29 @@ router.get('/topics/available', auth.studentOnly, async (req, res) => {
       include: [{
         model: User,
         as: 'teacher',
-        attributes: ['name', 'title', 'research_area']
+        attributes: ['id', 'name', 'title', 'research_area', 'department'],
+        required: true // 确保只返回有教师信息的课题
       }]
+    })
+
+    // 格式化返回数据，确保教师信息完整
+    const formattedTopics = topics.map(topic => {
+      const plainTopic = topic.get({ plain: true })
+      return {
+        ...plainTopic,
+        teacher: {
+          id: plainTopic.teacher.id,
+          name: plainTopic.teacher.name,
+          title: plainTopic.teacher.title,
+          research_area: plainTopic.teacher.research_area,
+          department: plainTopic.teacher.department
+        }
+      }
     })
 
     res.json({
       success: true,
-      data: topics
+      data: formattedTopics
     })
   } catch (error) {
     console.error('获取可选课题失败:', error)

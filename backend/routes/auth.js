@@ -49,7 +49,7 @@ router.post('/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      {
+      {  //Payload（载荷）：包含要传递的数据。
         id: user.id,
         role: user.role,
         username: user.username,
@@ -57,8 +57,8 @@ router.post('/login', async (req, res) => {
         student_id: user.student_id,
         department: user.department
       },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
+      process.env.JWT_SECRET, // Secret Key签名密钥，从环境变量中获取
+      { expiresIn: '24h' } // Options（可选参数）  如过期时间，24小时后过期
     )
 
     console.log('Login successful:', username)
@@ -82,7 +82,7 @@ router.post('/login', async (req, res) => {
 // 用户注册
 router.post('/register', async (req, res) => {
   try {
-    const { username, password, name, role, student_id, department } = req.body
+    const { username, password, name, role, student_id, teacher_id, department } = req.body
     console.log('Register attempt:', { username, role })
 
     // 检查用户名是否已存在
@@ -91,7 +91,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: '用户名已存在' })
     }
 
-    // 如果是学生，检查学号是否已存在且必填
+    // 根据角色验证必填字段
     if (role === 'student') {
       if (!student_id) {
         return res.status(400).json({ message: '学生必须填写学号' })
@@ -99,6 +99,14 @@ router.post('/register', async (req, res) => {
       const existingStudent = await User.findOne({ where: { student_id } })
       if (existingStudent) {
         return res.status(400).json({ message: '学号已存在' })
+      }
+    } else if (role === 'teacher') {
+      if (!teacher_id) {
+        return res.status(400).json({ message: '教师必须填写工号' })
+      }
+      const existingTeacher = await User.findOne({ where: { teacher_id } })
+      if (existingTeacher) {
+        return res.status(400).json({ message: '教师工号已存在' })
       }
     }
 
@@ -111,9 +119,11 @@ router.post('/register', async (req, res) => {
       department
     }
 
-    // 只有学生才添加学号字段
+    // 根据角色添加对应字段
     if (role === 'student') {
       userData.student_id = student_id
+    } else if (role === 'teacher') {
+      userData.teacher_id = teacher_id
     }
 
     const user = await User.create(userData)

@@ -2,35 +2,57 @@
   <div class="login-container">
     <el-card class="login-card">
       <template #header>
-        <h2 class="login-title">毕业论文选题系统</h2>
+        <div class="login-header">
+          <h2 class="login-title">毕业论文选题系统</h2>
+        </div>
       </template>
 
       <el-form :model="loginForm" :rules="rules" ref="loginFormRef">
         <el-form-item prop="username">
-          <el-input v-model="loginForm.username" placeholder="用户名" prefix-icon="User">
+          <el-input v-model="loginForm.username" placeholder="用户名">
+            <template #prefix>
+              <el-icon>
+                <User />
+              </el-icon>
+            </template>
           </el-input>
         </el-form-item>
 
         <el-form-item prop="password">
-          <el-input v-model="loginForm.password" type="password" placeholder="密码" prefix-icon="Lock" show-password>
+          <el-input v-model="loginForm.password" type="password" placeholder="密码" show-password>
+            <template #prefix>
+              <el-icon>
+                <Lock />
+              </el-icon>
+            </template>
           </el-input>
         </el-form-item>
 
         <el-form-item>
           <el-radio-group v-model="loginForm.role">
-            <el-radio label="student">学生</el-radio>
-            <el-radio label="teacher">教师</el-radio>
+            <el-radio label="student">
+              学生
+            </el-radio>
+            <el-radio label="teacher">
+              教师
+            </el-radio>
           </el-radio-group>
         </el-form-item>
 
         <el-form-item>
           <el-button type="primary" @click="handleLogin" class="login-button">
-            登录
+            <el-icon>
+              <Right />
+            </el-icon> 登录
           </el-button>
         </el-form-item>
 
         <div class="register-link">
-          <el-link type="primary" @click="goToRegister">还没有账号？立即注册</el-link>
+          <el-link type="primary" @click="goToRegister">
+            <el-icon>
+              <Plus />
+            </el-icon> 还没有账号？立即注册
+          </el-link>
         </div>
       </el-form>
     </el-card>
@@ -40,7 +62,12 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, Lock } from '@element-plus/icons-vue'
+import {
+  User,
+  Lock,
+  Right,
+  Plus,
+} from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { login } from '../api/auth'
 
@@ -112,6 +139,17 @@ const goToRegister = () => {
   width: 400px;
 }
 
+.login-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.login-icon {
+  background-color: #409EFF;
+}
+
 .login-title {
   text-align: center;
   color: #303133;
@@ -120,6 +158,10 @@ const goToRegister = () => {
 
 .login-button {
   width: 100%;
+}
+
+:deep(.el-input-group__prepend) {
+  padding: 0 15px;
 }
 
 :deep(.el-card__header) {
@@ -133,5 +175,27 @@ const goToRegister = () => {
 .register-link {
   text-align: center;
   margin-top: 15px;
+}
+
+/* 图标样式 */
+:deep(.el-input__prefix) {
+  display: flex;
+  align-items: center;
+  color: #909399;
+  margin-left: 5px;
+}
+
+.el-radio {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.el-button .el-icon {
+  margin-right: 5px;
+}
+
+.el-link .el-icon {
+  margin-right: 5px;
 }
 </style>

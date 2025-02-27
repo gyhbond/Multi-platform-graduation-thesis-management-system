@@ -251,13 +251,13 @@ router.put('/topics/:topicId/selections/:studentId', auth.teacherOnly, async (re
 
     res.json({
       success: true,
-      message: '更新成功'
+      message: '审核成功'
     })
   } catch (error) {
-    console.error('更新选题状态失败:', error)
+    console.error('审核选题失败:', error)
     res.status(500).json({
       success: false,
-      message: '更新选题状态失败'
+      message: '审核选题失败'
     })
   }
 })

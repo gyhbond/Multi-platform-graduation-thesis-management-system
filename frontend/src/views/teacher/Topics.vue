@@ -25,15 +25,32 @@
         <el-table-column label="选题学生" min-width="200">
           <template #default="{ row }">
             <div v-if="row.students && row.students.length > 0">
-              <el-tag
+              <div
                 v-for="student in row.students"
                 :key="student.id"
-                :type="getSelectionStatusType(student.selectionStatus)"
-                class="student-tag"
+                class="student-item"
               >
-                {{ student.name }} ({{ student.studentId }})
-                {{ getSelectionStatusText(student.selectionStatus) }}
-              </el-tag>
+                <el-tag :type="getSelectionStatusType(student.selectionStatus)">
+                  {{ student.name }} ({{ student.studentId }})
+                  {{ getSelectionStatusText(student.selectionStatus) }}
+                </el-tag>
+                <div class="student-actions" v-if="student.selectionStatus === 'pending'">
+                  <el-button 
+                    type="success" 
+                    size="small"
+                    @click="handleReview(row.id, student.id, 'approved')"
+                  >
+                    通过
+                  </el-button>
+                  <el-button 
+                    type="danger" 
+                    size="small"
+                    @click="handleReview(row.id, student.id, 'rejected')"
+                  >
+                    拒绝
+                  </el-button>
+                </div>
+              </div>
             </div>
             <span v-else>暂无学生选择</span>
           </template>
@@ -238,6 +255,28 @@ const handleToggleStatus = async (row) => {
   }
 }
 
+const handleReview = async (topicId, studentId, status) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要${status === 'approved' ? '通过' : '拒绝'}该学生的选题申请吗？`,
+      '提示',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: status === 'approved' ? 'success' : 'warning'
+      }
+    )
+
+    await updateTopicSelection(topicId, studentId, status)
+    ElMessage.success('审核成功')
+    fetchTopics() // 刷新列表
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '审核失败')
+    }
+  }
+}
+
 onMounted(() => {
   fetchTopics()
 })
@@ -262,8 +301,7 @@ onMounted(() => {
 .student-item {
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
-  padding: 5px 0;
+  margin-bottom: 8px;
 }
 
 .status-tag {
@@ -271,11 +309,11 @@ onMounted(() => {
 }
 
 .student-actions {
-  margin-left: auto;
+  margin-left: 10px;
 }
 
 .student-actions .el-button {
-  margin-left: 10px;
+  margin-left: 5px;
 }
 
 .student-tag {

@@ -42,8 +42,39 @@ router.put('/profile', auth.authenticate, async (req, res) => {
       title,
       research_area,
       office_location,
-      password
+      password,
+      oldPassword
     } = req.body
+
+    const user = await User.findByPk(req.user.id)
+
+    // 如果要更新密码，先验证原密码
+    if (password) {
+      if (!oldPassword) {
+        return res.status(400).json({
+          success: false,
+          message: '请提供原密码'
+        })
+      }
+
+      // 验证原密码是否正确
+      const isValidPassword = await user.validatePassword(oldPassword)
+      if (!isValidPassword) {
+        return res.status(400).json({
+          success: false,
+          message: '原密码错误'
+        })
+      }
+
+      // 检查新密码是否与原密码相同
+      const isSamePassword = await user.validatePassword(password)
+      if (isSamePassword) {
+        return res.status(400).json({
+          success: false,
+          message: '新密码不能与原密码相同'
+        })
+      }
+    }
 
     const updateData = {
       name,
@@ -57,8 +88,7 @@ router.put('/profile', auth.authenticate, async (req, res) => {
 
     // 如果提供了新密码，则更新密码
     if (password) {
-      const salt = await bcrypt.genSalt(10)
-      updateData.password = await bcrypt.hash(password, salt)
+      updateData.password = password // User 模型中的 password 字段已经配置了自动哈希
     }
 
     // 移除未定义的字段
@@ -68,9 +98,7 @@ router.put('/profile', auth.authenticate, async (req, res) => {
       }
     })
 
-    await User.update(updateData, {
-      where: { id: req.user.id }
-    })
+    await user.update(updateData)
 
     const updatedUser = await User.findByPk(req.user.id, {
       attributes: { exclude: ['password'] }

@@ -44,11 +44,6 @@ const routes = [
         component: () => import('../views/teacher/ThesisReview.vue'),
         meta: { requiresAuth: true, role: 'teacher' }
       },
-      {
-        path: 'teacher/thesis-scores',
-        name: 'ThesisScores',
-        component: () => import('../views/teacher/ThesisScores.vue')
-      },
       // 学生路由
       {
         path: 'topics/available',
@@ -70,22 +65,7 @@ const routes = [
         name: 'ThesisFeedback',
         component: () => import('../views/student/ThesisFeedback.vue')
       },
-      // 管理员路由
-      {
-        path: 'admin/users',
-        name: 'UserManagement',
-        component: () => import('../views/admin/Users.vue')
-      },
-      {
-        path: 'admin/departments',
-        name: 'DepartmentManagement',
-        component: () => import('../views/admin/Departments.vue')
-      },
-      {
-        path: 'admin/topics',
-        name: 'TopicManagement',
-        component: () => import('../views/admin/Topics.vue')
-      },
+
       // 修改学生和教师的 profile 路由路径
       {
         path: 'student/profile',

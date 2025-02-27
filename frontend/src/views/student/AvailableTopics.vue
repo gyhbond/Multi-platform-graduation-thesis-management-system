@@ -7,8 +7,8 @@
       <el-table-column prop="description" label="课题描述" show-overflow-tooltip />
       <el-table-column label="指导教师">
         <template #default="{ row }">
-          <router-link :to="`/teacher-info/${row.teacher.id}`" class="teacher-link">
-            {{ row.teacher.name }}
+          <router-link :to="`/teacher-info/${row.teacher?.id}`" class="teacher-link">
+            {{ row.teacher?.name }}
           </router-link>
         </template>
       </el-table-column>

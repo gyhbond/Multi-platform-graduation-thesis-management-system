@@ -1,19 +1,20 @@
-const { Sequelize } = require('sequelize')
+const { Sequelize } = require('sequelize') // 引入 Sequelize 库，用于与数据库进行交互
 require('dotenv').config()
 
 const sequelize = new Sequelize(
+  // 数据库名称，从环境变量中获取，如果没有设置则使用默认值 'thesis_system'
   process.env.DB_NAME || 'thesis_system',
   process.env.DB_USER || 'root',
   process.env.DB_PASSWORD || 'your_password',
   {
     host: process.env.DB_HOST || 'localhost',
-    dialect: 'mysql',
-    logging: console.log,
+    dialect: 'mysql', // 使用的数据库类型，这里指定为 MySQL
+    logging: console.log, // 是否启用日志记录，这里使用 console.log 输出日志
     define: {
-      underscored: true,
-      timestamps: true,
-      createdAt: 'created_at',
-      updatedAt: 'updated_at'
+      underscored: true, // 是否使用下划线命名法，例如 created_at 而不是 createdAt
+      timestamps: true, // 是否启用时间戳，自动添加 createdAt 和 updatedAt 字段
+      createdAt: 'created_at', // 创建时间字段名
+      updatedAt: 'updated_at' // 更新时间字段名
     }
   }
 )

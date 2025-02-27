@@ -15,6 +15,17 @@
           <el-input v-model="profileForm.name" />
         </el-form-item>
 
+        <el-form-item label="性别" prop="gender">
+          <el-radio-group v-model="profileForm.gender">
+            <el-radio label="male">男</el-radio>
+            <el-radio label="female">女</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item label="工号" prop="teacher_id">
+          <el-input v-model="profileForm.teacher_id" disabled />
+        </el-form-item>
+
         <el-form-item label="职称" prop="title">
           <el-input v-model="profileForm.title" />
         </el-form-item>
@@ -47,6 +58,54 @@
         </el-form-item>
       </el-form>
     </el-card>
+
+    <el-card class="profile-card" style="margin-top: 20px;">
+      <template #header>
+        <div class="card-header">
+          <h2>修改密码</h2>
+        </div>
+      </template>
+
+      <el-form 
+        :model="passwordForm" 
+        :rules="passwordRules" 
+        ref="passwordFormRef" 
+        label-width="100px"
+      >
+        <el-form-item label="原密码" prop="oldPassword">
+          <el-input 
+            v-model="passwordForm.oldPassword" 
+            type="password" 
+            show-password
+            placeholder="请输入原密码"
+          />
+        </el-form-item>
+
+        <el-form-item label="新密码" prop="newPassword">
+          <el-input 
+            v-model="passwordForm.newPassword" 
+            type="password" 
+            show-password
+            placeholder="请输入新密码"
+          />
+        </el-form-item>
+
+        <el-form-item label="确认密码" prop="confirmPassword">
+          <el-input 
+            v-model="passwordForm.confirmPassword" 
+            type="password" 
+            show-password
+            placeholder="请再次输入新密码"
+          />
+        </el-form-item>
+
+        <el-form-item>
+          <el-button type="primary" @click="handleChangePassword">
+            修改密码
+          </el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
   </div>
 </template>
 
@@ -68,6 +127,8 @@ const departments = [
 const profileForm = reactive({
   username: '',
   name: '',
+  gender: '',
+  teacher_id: '',
   title: '',
   department: '',
   research_area: '',
@@ -80,8 +141,52 @@ const rules = {
   name: [
     { required: true, message: '请输入姓名', trigger: 'blur' }
   ],
+  gender: [
+    { required: true, message: '请选择性别', trigger: 'change' }
+  ],
   email: [
     { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
+  ]
+}
+
+const passwordFormRef = ref(null)
+const passwordForm = reactive({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+
+const passwordRules = {
+  oldPassword: [
+    { required: true, message: '请输入原密码', trigger: 'blur' },
+    { min: 6, message: '密码长度不能小于6位', trigger: 'blur' }
+  ],
+  newPassword: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 6, message: '密码长度不能小于6位', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        if (value === passwordForm.oldPassword) {
+          callback(new Error('新密码不能与原密码相同'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ],
+  confirmPassword: [
+    { required: true, message: '请再次输入新密码', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        if (value !== passwordForm.newPassword) {
+          callback(new Error('两次输入的密码不一致'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
   ]
 }
 
@@ -119,6 +224,31 @@ const handleSubmit = async () => {
 const cancelEdit = () => {
   Object.assign(profileForm, originalProfile.value)
   isEditing.value = false
+}
+
+const handleChangePassword = async () => {
+  if (!passwordFormRef.value) return
+
+  await passwordFormRef.value.validate(async (valid) => {
+    if (valid) {
+      try {
+        const response = await updateProfile({
+          password: passwordForm.newPassword,
+          oldPassword: passwordForm.oldPassword
+        })
+        
+        if (response.success) {
+          ElMessage.success('密码修改成功')
+          passwordForm.oldPassword = ''
+          passwordForm.newPassword = ''
+          passwordForm.confirmPassword = ''
+          passwordFormRef.value.resetFields()
+        }
+      } catch (error) {
+        ElMessage.error(error.response?.data?.message || '密码修改失败')
+      }
+    }
+  })
 }
 
 onMounted(() => {

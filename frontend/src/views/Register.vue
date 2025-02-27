@@ -22,6 +22,13 @@
           <el-input v-model="registerForm.name" placeholder="请输入姓名"></el-input>
         </el-form-item>
 
+        <el-form-item label="性别" prop="gender">
+          <el-radio-group v-model="registerForm.gender">
+            <el-radio label="male">男</el-radio>
+            <el-radio label="female">女</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
         <el-form-item label="身份" prop="role">
           <el-radio-group v-model="registerForm.role">
             <el-radio label="student">学生</el-radio>
@@ -33,6 +40,10 @@
           <el-input v-model="registerForm.student_id" placeholder="请输入学号"></el-input>
         </el-form-item>
 
+        <el-form-item label="工号" prop="teacher_id" v-if="registerForm.role === 'teacher'">
+          <el-input v-model="registerForm.teacher_id" placeholder="请输入教师工号"></el-input>
+        </el-form-item>
+
         <el-form-item label="所属院系" prop="department">
           <el-select v-model="registerForm.department" placeholder="请选择院系">
             <el-option
@@ -41,6 +52,29 @@
               :label="dept.label"
               :value="dept.value"
             ></el-option>
+          </el-select>
+        </el-form-item>
+
+        <el-form-item 
+          label="专业" 
+          prop="major" 
+          v-if="registerForm.role === 'student'"
+        >
+          <el-input 
+            v-model="registerForm.major" 
+            placeholder="请输入专业"
+          />
+        </el-form-item>
+
+        <el-form-item 
+          label="政治面貌" 
+          prop="political_status"
+          v-if="registerForm.role === 'student'"
+        >
+          <el-select v-model="registerForm.political_status" placeholder="请选择政治面貌">
+            <el-option label="群众" value="群众" />
+            <el-option label="共青团员" value="共青团员" />
+            <el-option label="中共党员" value="中共党员" />
           </el-select>
         </el-form-item>
 
@@ -73,9 +107,13 @@ const registerForm = reactive({
   password: '',
   confirmPassword: '',
   name: '',
+  gender: 'male',
   role: 'student',
   student_id: '',
-  department: ''
+  teacher_id: '',
+  department: '',
+  major: '',
+  political_status: ''
 })
 
 // 动态验证规则
@@ -104,6 +142,9 @@ const rules = reactive({
   name: [
     { required: true, message: '请输入姓名', trigger: 'blur' }
   ],
+  gender: [
+    { required: true, message: '请选择性别', trigger: 'change' }
+  ],
   role: [
     { required: true, message: '请选择身份', trigger: 'change' }
   ],
@@ -121,8 +162,50 @@ const rules = reactive({
       }
     }
   ],
+  teacher_id: [
+    {
+      required: true,
+      message: '请输入教师工号',
+      trigger: 'blur',
+      validator: (rule, value, callback) => {
+        if (registerForm.role === 'teacher' && !value) {
+          callback(new Error('教师必须填写工号'))
+        } else {
+          callback()
+        }
+      }
+    }
+  ],
   department: [
     { required: true, message: '请选择院系', trigger: 'change' }
+  ],
+  major: [
+    {
+      required: true,
+      message: '请选择专业',
+      trigger: 'change',
+      validator: (rule, value, callback) => {
+        if (registerForm.role === 'student' && !value) {
+          callback(new Error('请选择专业'))
+        } else {
+          callback()
+        }
+      }
+    }
+  ],
+  political_status: [
+    {
+      required: true,
+      message: '请选择政治面貌',
+      trigger: 'change',
+      validator: (rule, value, callback) => {
+        if (registerForm.role === 'student' && !value) {
+          callback(new Error('请选择政治面貌'))
+        } else {
+          callback()
+        }
+      }
+    }
   ]
 })
 
