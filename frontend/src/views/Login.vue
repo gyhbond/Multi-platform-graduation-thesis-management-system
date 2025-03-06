@@ -115,7 +115,7 @@ const handleLogin = async () => {
         }
       } catch (error) {
         console.error('Login error:', error)
-        ElMessage.error(error.response?.data?.message || '登录失败')
+        ElMessage.error(error.response?.data?.message || '登录失败') //代码中的问号 ?. 是 JavaScript 的 可选链操作符（Optional Chaining Operator），它的作用是防止在访问对象属性时，因某个中间属性不存在（null 或 undefined）而导致的运行时错误。
       }
     }
   })

@@ -7,7 +7,7 @@ const { Op, col } = require('sequelize')
 const { sequelize } = require('../config/database')
 const TopicSelection = require('../models/TopicSelection')
 
-// 获取可选课题列表
+// 获取可选课题列表  中间件: auth.studentOnly 确保只有学生角色的用户能访问此接口。 先执行 auth.studentOnly，再执行后面的路由处理函数。
 router.get('/topics/available', auth.studentOnly, async (req, res) => {
   try {
     const topics = await Topic.findAll({

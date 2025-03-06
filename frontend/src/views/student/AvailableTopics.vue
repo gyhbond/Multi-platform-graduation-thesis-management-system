@@ -1,12 +1,14 @@
 <template>
   <div class="topics-container">
     <h2>可选课题列表</h2>
-
     <el-table :data="topics" style="width: 100%" v-loading="loading">
+      <!-- v-loading是element-plus的指令，用于显示加载状态 -->
       <el-table-column prop="title" label="课题名称" />
       <el-table-column prop="description" label="课题描述" show-overflow-tooltip />
+      <!-- show-overflow-tooltip 当内容过长超出列宽时，显示省略号，鼠标悬停时展示完整内容的 Tooltip。 -->
       <el-table-column label="指导教师">
         <template #default="{ row }">
+          <!-- #default 是默认插槽，用于显示课题指导教师的名字。row 是 el-table 绑定的 :data 数组中当前遍历到的元素。例如，若 :data="topics"，则 row 对应 topics 中的某个课题对象。解构赋值：从子组件传递的插槽属性（Slot Props）中提取 row 字段。(底层通过作用与)-->
           <router-link :to="`/teacher-info/${row.teacher?.id}`" class="teacher-link">
             {{ row.teacher?.name }}
           </router-link>

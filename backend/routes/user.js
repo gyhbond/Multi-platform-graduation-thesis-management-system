@@ -150,7 +150,7 @@ router.get('/teachers/:id', async (req, res) => {
         role: 'teacher'
       },
       attributes: {
-        exclude: ['password', 'student_id']
+        exclude: ['password', 'student_id']    //排除敏感或不必要字段不返回 password（安全考虑）和 student_id（教师无需学生ID）。
       }
     })
 

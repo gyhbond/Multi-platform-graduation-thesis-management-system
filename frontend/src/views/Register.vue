@@ -6,6 +6,9 @@
       </template>
 
       <el-form :model="registerForm" :rules="rules" ref="registerFormRef" label-width="100px">
+        <!-- Element UI 的 <el-form> 组件通过 :model 属性绑定一个数据对象，集中管理整个表单的数据：-->
+        <!-- label="用户名"会在输入框旁边显示“用户名”三个字，提示用户在此处输入用户名。  -->
+        <!-- prop="username" 是表单域 model 字段，用于和输入控件绑定，该字段规定了表单域的校验规则。prop的值需要与表单数据模型（即el-form的:model绑定的对象）中的属性名一致。例如，prop="username"对应registerForm.username。如关联 registerForm.username 和 rules.username -->
         <el-form-item label="用户名" prop="username">
           <el-input v-model="registerForm.username" placeholder="请输入用户名"></el-input>
         </el-form-item>
@@ -15,7 +18,8 @@
         </el-form-item>
 
         <el-form-item label="确认密码" prop="confirmPassword">
-          <el-input v-model="registerForm.confirmPassword" type="password" placeholder="请再次输入密码" show-password></el-input>
+          <el-input v-model="registerForm.confirmPassword" type="password" placeholder="请再次输入密码"
+            show-password></el-input>
         </el-form-item>
 
         <el-form-item label="姓名" prop="name">
@@ -46,31 +50,17 @@
 
         <el-form-item label="所属院系" prop="department">
           <el-select v-model="registerForm.department" placeholder="请选择院系">
-            <el-option
-              v-for="dept in departments"
-              :key="dept.value"
-              :label="dept.label"
-              :value="dept.value"
-            ></el-option>
+            <el-option v-for="dept in departments" :key="dept.value" :label="dept.label"
+              :value="dept.value"></el-option>
+            <!-- label 是选项的显示内容，value 是选项的值 -->
           </el-select>
         </el-form-item>
 
-        <el-form-item 
-          label="专业" 
-          prop="major" 
-          v-if="registerForm.role === 'student'"
-        >
-          <el-input 
-            v-model="registerForm.major" 
-            placeholder="请输入专业"
-          />
+        <el-form-item label="专业" prop="major" v-if="registerForm.role === 'student'">
+          <el-input v-model="registerForm.major" placeholder="请输入专业" />
         </el-form-item>
 
-        <el-form-item 
-          label="政治面貌" 
-          prop="political_status"
-          v-if="registerForm.role === 'student'"
-        >
+        <el-form-item label="政治面貌" prop="political_status" v-if="registerForm.role === 'student'">
           <el-select v-model="registerForm.political_status" placeholder="请选择政治面貌">
             <el-option label="群众" value="群众" />
             <el-option label="共青团员" value="共青团员" />
@@ -94,7 +84,7 @@ import { ElMessage } from 'element-plus'
 import { register } from '../api/auth'
 
 const router = useRouter()
-const registerFormRef = ref(null)
+const registerFormRef = ref(null)  //在组件挂载前（即页面渲染前），registerFormRef.value 为 null；挂载完成后，registerFormRef.value 自动指向表单组件实例。
 
 const departments = [
   { value: 'computer', label: '计算机科学与技术学院' },
@@ -117,10 +107,18 @@ const registerForm = reactive({
 })
 
 // 动态验证规则
+// required: true,    // 必填
+// message: '提示信息', // 错误提示
+// trigger: 'blur',   // 触发时机（blur/change）
+// min: 6,            // 最小长度
+// max: 18,           // 最大长度
+// pattern: /正则表达式/, // 正则验证
+// validator: (rule, value, callback) => { /* 自定义验证函数 */ }
+// }
 const rules = reactive({
-  username: [
+  username: [  //// 此规则会应用到 prop="username" 的表单项
     { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' }
+    { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' }  //多个规则
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
@@ -129,11 +127,11 @@ const rules = reactive({
   confirmPassword: [
     { required: true, message: '请再次输入密码', trigger: 'blur' },
     {
-      validator: (rule, value, callback) => {
+      validator: (rule, value, callback) => {  //rule：当前验证规则对象（一般用不到，可忽略）。value：当前表单项的值。callback：回调函数，用于返回验证结果。
         if (value !== registerForm.password) {
           callback(new Error('两次输入密码不一致'))
         } else {
-          callback()
+          callback() // 无参数表示验证通过
         }
       },
       trigger: 'blur'
@@ -149,9 +147,9 @@ const rules = reactive({
     { required: true, message: '请选择身份', trigger: 'change' }
   ],
   student_id: [
-    { 
-      required: true, 
-      message: '请输入学号', 
+    {
+      required: true,
+      message: '请输入学号',
       trigger: 'blur',
       validator: (rule, value, callback) => {
         if (registerForm.role === 'student' && !value) {
@@ -177,33 +175,29 @@ const rules = reactive({
     }
   ],
   department: [
-    { required: true, message: '请选择院系', trigger: 'change' }
+    {
+      required: false,
+      message: '请选择院系',
+      trigger: 'change'
+    }
   ],
   major: [
     {
-      required: true,
+      required: false,
       message: '请选择专业',
       trigger: 'change',
       validator: (rule, value, callback) => {
-        if (registerForm.role === 'student' && !value) {
-          callback(new Error('请选择专业'))
-        } else {
-          callback()
-        }
+        callback()
       }
     }
   ],
   political_status: [
     {
-      required: true,
+      required: false,
       message: '请选择政治面貌',
       trigger: 'change',
       validator: (rule, value, callback) => {
-        if (registerForm.role === 'student' && !value) {
-          callback(new Error('请选择政治面貌'))
-        } else {
-          callback()
-        }
+        callback()
       }
     }
   ]
@@ -211,7 +205,7 @@ const rules = reactive({
 
 const handleRegister = async () => {
   if (!registerFormRef.value) return
-  
+
   await registerFormRef.value.validate(async (valid) => {
     if (valid) {
       try {

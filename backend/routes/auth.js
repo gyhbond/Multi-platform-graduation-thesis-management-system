@@ -62,7 +62,7 @@ router.post('/login', async (req, res) => {
     )
 
     console.log('Login successful:', username)
-    res.json({
+    res.json({         //将 JavaScript 对象转换为 JSON 格式，并通过 HTTP 响应发送给客户端。
       token,
       user: {
         id: user.id,
@@ -126,7 +126,7 @@ router.post('/register', async (req, res) => {
       userData.teacher_id = teacher_id
     }
 
-    const user = await User.create(userData)
+    const user = await User.create(userData)  //在数据库中创建一条新用户记录
 
     const token = jwt.sign(
       {

@@ -14,7 +14,7 @@ const userRouter = require('./routes/user')
 
 // 基础中间件
 app.use(cors())
-app.use(express.json())
+app.use(express.json())  //这是Express的一个内置中间件，用于解析请求体中的JSON数据。当客户端发送POST或PUT请求，并且请求头Content-Type设置为application/json时，这个中间件会将请求体中的JSON字符串转换为JavaScript对象，并挂载到req.body上，供后续的路由处理函数使用。
 
 // 配置静态文件服务，确保上传目录可以访问
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
@@ -63,7 +63,7 @@ async function startServer () {
     await initDatabase()
 
     // 验证连接
-    await sequelize.authenticate()
+    await sequelize.authenticate()  //sequelize.authenticate() 是 Sequelize 提供的方法，用于测试数据库连接。如果连接失败，会抛出错误并被 catch 捕获。
     console.log('数据库连接成功')
 
     // 加载模型关联
@@ -71,6 +71,8 @@ async function startServer () {
     console.log('模型关联加载完成')
 
     // 修改同步策略，不自动修改表结构
+    // alter: true：允许 Sequelize 自动修改现有表（如添加新字段、修改字段类型），但可能导致数据丢失或意外行为。
+    // alter: false（默认值）：禁止自动修改表结构，仅创建缺失的表（安全模式）。
     await sequelize.sync({ alter: false })
     console.log('数据库模型同步完成')
 
