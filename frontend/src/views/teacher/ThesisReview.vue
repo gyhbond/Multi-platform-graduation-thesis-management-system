@@ -70,16 +70,65 @@
         <div class="pdf-viewer">
           <template v-if="isWordFile">
             <div class="word-file-notice">
-              <el-empty description="Word文档暂不支持在线预览">
+              <el-empty description="Word文档暂不支持在线预览和批注">
+                <template #image>
+                  <el-icon :size="48" color="#909399">
+                    <Document />
+                  </el-icon>
+                </template>
                 <template #extra>
-                  <el-button type="primary" @click="handleDownload(currentPdfThesis)">
-                    下载文档
-                  </el-button>
+                  <div class="document-notice-actions">
+                    <p class="notice-text">请下载文档后使用Office或WPS等软件进行批注</p>
+                    <el-button type="primary" @click="handleDownload(currentPdfThesis)">
+                      下载文档
+                    </el-button>
+                  </div>
                 </template>
               </el-empty>
             </div>
           </template>
-          <iframe v-else-if="pdfUrl" :src="pdfUrl" width="100%" height="100%" frameborder="0"></iframe>
+          <template v-else-if="pdfUrl">
+            <div class="pdf-loading" v-if="pdfLoading">
+              <el-skeleton animated :rows="10" />
+              <div class="loading-text">
+                <el-icon class="is-loading">
+                  <Loading />
+                </el-icon>
+                加载文档中...
+              </div>
+            </div>
+            <div v-show="!pdfLoading">
+              <iframe ref="pdfViewer" :src="pdfUrl" width="100%" height="100%" frameborder="0" @load="handlePdfLoad"
+                @error="handlePdfError"></iframe>
+            </div>
+            <div class="pdf-error" v-if="pdfError">
+              <el-empty description="文档加载失败">
+                <template #image>
+                  <el-icon :size="48" color="#F56C6C">
+                    <WarningFilled />
+                  </el-icon>
+                </template>
+                <template #extra>
+                  <div class="document-notice-actions">
+                    <p class="notice-text">{{ pdfErrorMessage }}</p>
+                    <el-button type="primary" @click="reloadPdf">重新加载</el-button>
+                    <el-button @click="handleDownload(currentPdfThesis)">下载文档</el-button>
+                  </div>
+                </template>
+              </el-empty>
+            </div>
+          </template>
+          <template v-else>
+            <div class="no-document-notice">
+              <el-empty description="暂无文档">
+                <template #image>
+                  <el-icon :size="48" color="#909399">
+                    <Document />
+                  </el-icon>
+                </template>
+              </el-empty>
+            </div>
+          </template>
         </div>
 
         <!-- 批注面板 -->
@@ -124,9 +173,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Delete, Edit, Check } from '@element-plus/icons-vue'
+import { Delete, Edit, Check, Document, WarningFilled, Loading } from '@element-plus/icons-vue'
 import { getTeacherThesisList, reviewThesis, saveAnnotations as saveThesisAnnotations } from '../../api/thesis'
 
 const loading = ref(false)
@@ -142,6 +191,11 @@ const reviewFormRef = ref(null)
 const annotationDialogVisible = ref(false)
 const currentPdfThesis = ref(null)
 const annotations = ref([])
+
+const pdfLoading = ref(true)
+const pdfError = ref(false)
+const pdfErrorMessage = ref('文档加载失败，请尝试重新加载或下载查看')
+const pdfViewer = ref(null)
 
 const getStatusType = (status) => {
   const types = {
@@ -199,6 +253,7 @@ const handleDownload = async (thesis) => {
         }
       }
 
+      // 打开保存对话框
       const handle = await window.showSaveFilePicker({
         suggestedName: `${thesis.student.name}-论文.${ext}`,
         types: [fileTypes[ext] || {
@@ -209,6 +264,10 @@ const handleDownload = async (thesis) => {
         }]
       })
 
+      // 用户已选择保存位置，此时再开始下载
+      ElMessage.info('正在下载文件...')
+
+      // 获取文件内容
       const response = await fetch(downloadUrl)
 
       if (!response.ok) throw new Error('下载失败')
@@ -222,22 +281,26 @@ const handleDownload = async (thesis) => {
 
       ElMessage.success('下载成功')
     } catch (error) {
+      // 如果用户取消了保存对话框，直接返回
       if (error.name === 'AbortError') {
-        // 用户取消了保存对话框
         return
       }
-      throw error
-    }
-  } catch (error) {
-    console.error('下载论文失败:', error)
-    // 如果不支持 showSaveFilePicker，回退到传统下载方式
-    if (error.name === 'TypeError' && !window.showSaveFilePicker) {
-      try {
-        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-        const token = localStorage.getItem('token')
-        const downloadUrl = `${baseUrl}/api/thesis/${thesis.id}/download?token=${token}`
-        const ext = thesis.file_url.split('.').pop().toLowerCase()
 
+      // 如果是其他错误，或者浏览器不支持现代文件API
+      if (error.name === 'TypeError' && !window.showSaveFilePicker) {
+        // 对于不支持现代文件API的浏览器，使用传统方式但增加确认步骤
+        await ElMessageBox.confirm(
+          '你的浏览器不支持选择保存位置，文件将下载到默认下载目录。是否继续？',
+          '下载确认',
+          {
+            confirmButtonText: '继续下载',
+            cancelButtonText: '取消',
+            type: 'info'
+          }
+        )
+
+        // 用户确认后开始下载
+        ElMessage.info('正在下载文件...')
         const response = await fetch(downloadUrl)
 
         if (!response.ok) throw new Error('下载失败')
@@ -252,12 +315,13 @@ const handleDownload = async (thesis) => {
         document.body.removeChild(link)
         window.URL.revokeObjectURL(url)
         ElMessage.success('下载成功')
-      } catch (e) {
-        ElMessage.error('下载失败')
+      } else {
+        throw error
       }
-    } else {
-      ElMessage.error('下载失败')
     }
+  } catch (error) {
+    console.error('下载论文失败:', error)
+    ElMessage.error('下载失败')
   }
 }
 
@@ -403,6 +467,31 @@ const saveAnnotations = async () => {
   }
 }
 
+const handlePdfLoad = () => {
+  pdfLoading.value = false
+  pdfError.value = false
+}
+
+const handlePdfError = () => {
+  pdfLoading.value = false
+  pdfError.value = true
+  pdfErrorMessage.value = '文档加载失败，可能是格式不支持或文件损坏'
+}
+
+const reloadPdf = () => {
+  if (pdfViewer.value) {
+    pdfLoading.value = true
+    pdfError.value = false
+    const timestamp = new Date().getTime()
+    pdfViewer.value.src = `${pdfUrl.value}?t=${timestamp}`
+  }
+}
+
+watch(currentPdfThesis, () => {
+  pdfLoading.value = true
+  pdfError.value = false
+})
+
 onMounted(() => {
   fetchThesisList()
 })
@@ -528,6 +617,64 @@ onMounted(() => {
 .word-file-notice :deep(.el-empty__description) {
   margin-top: 20px;
   font-size: 16px;
+}
+
+.pdf-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.loading-text {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 16px;
+  color: #409EFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.pdf-error {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.document-notice-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.notice-text {
+  color: #909399;
+  text-align: center;
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.no-document-notice {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* 移动端样式优化 */
