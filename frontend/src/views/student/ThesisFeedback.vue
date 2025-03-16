@@ -5,7 +5,7 @@
         <template #header>
           <div class="card-header">
             <h2>论文评阅结果</h2>
-            <el-button-group>
+            <el-button-group> <!--效果：两个按钮紧密排列，无间隔边框 -->
               <el-button type="primary" @click="handleDownload">
                 下载论文
               </el-button>
@@ -31,13 +31,9 @@
 
         <div v-if="thesis.status === 'reviewed'" class="review-result">
           <div class="score-section">
-            <h3>得分</h3>
-            <el-progress
-              type="dashboard"
-              :percentage="thesis.score"
-              :color="getScoreColor(thesis.score)"
-            >
-              <template #default="{ percentage }">
+            <h3>得分</h3> <!-- dashboard仪盘型进度条 -->
+            <el-progress type="dashboard" :percentage="thesis.score" :color="getScoreColor(thesis.score)">
+              <template #default="{ percentage }"><!-- 利用默认插槽内嵌自定义内容 -->
                 <span class="score-text">{{ formatScore(percentage) }}</span>
               </template>
             </el-progress>
@@ -53,39 +49,26 @@
 
         <div v-else-if="thesis.status === 'submitted'" class="waiting-review">
           <el-empty description="论文正在等待导师评阅">
-            <template #image>
-              <el-icon class="waiting-icon"><Loading /></el-icon>
+            <template #image> <!--覆盖 <el-empty> 默认的图标插槽 ，这玩意有默认的图标-->
+              <el-icon class="waiting-icon">
+                <Loading />
+              </el-icon>
             </template>
           </el-empty>
         </div>
 
         <div class="thesis-actions">
-          <el-button 
-            type="primary" 
-            @click="handleDownload"
-            :disabled="!thesis.file_url"
-          >
+          <el-button type="primary" @click="handleDownload" :disabled="!thesis.file_url">
             下载我的论文
           </el-button>
         </div>
       </el-card>
 
       <!-- 批注查看对话框 -->
-      <el-dialog
-        v-model="annotationDialogVisible"
-        title="论文批注"
-        width="90%"
-        :fullscreen="true"
-      >
+      <el-dialog v-model="annotationDialogVisible" title="论文批注" width="90%" :fullscreen="true">
         <div class="annotation-container">
           <div class="pdf-viewer">
-            <iframe
-              v-if="pdfUrl"
-              :src="pdfUrl"
-              width="100%"
-              height="100%"
-              frameborder="0"
-            ></iframe>
+            <iframe v-if="pdfUrl" :src="pdfUrl" width="100%" height="100%" frameborder="0"></iframe>
           </div>
           <div class="annotation-panel">
             <div class="annotation-header">
@@ -93,11 +76,7 @@
             </div>
             <el-scrollbar height="calc(100vh - 200px)">
               <div class="annotation-list">
-                <div
-                  v-for="(annotation, index) in annotations"
-                  :key="index"
-                  class="annotation-item"
-                >
+                <div v-for="(annotation, index) in annotations" :key="index" class="annotation-item">
                   <div class="annotation-item-header">
                     <div class="annotation-page">
                       <span class="label">第 {{ annotation.page }} 页</span>
@@ -120,10 +99,7 @@
       </el-dialog>
     </template>
 
-    <el-empty 
-      v-else
-      description="你还没有提交论文"
-    >
+    <el-empty v-else description="你还没有提交论文">
       <el-button type="primary" @click="$router.push('/thesis/upload')">
         去提交论文
       </el-button>
@@ -184,70 +160,84 @@ const formatScore = (percentage) => {
 const handleDownload = async () => {
   try {
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-    const downloadUrl = `${baseUrl}/api/thesis/download/${thesis.value.id}`
-    
-    // 使用 showSaveFilePicker API 让用户选择保存位置
+    const token = localStorage.getItem('token')
+    const downloadUrl = `${baseUrl}/api/thesis/${thesis.value.id}/download?token=${token}`
+
+    // 获取文件扩展名
+    const ext = thesis.value.file_url.split('.').pop().toLowerCase()
+
+    // 尝试使用现代文件系统API
     try {
-      const handle = await window.showSaveFilePicker({
-        suggestedName: '我的论文.pdf',
-        types: [{
+      // 根据文件扩展名配置文件类型
+      const fileTypes = {
+        'pdf': {
           description: 'PDF 文件',
-          accept: { 'application/pdf': ['.pdf'] }
+          accept: {
+            'application/pdf': ['.pdf']
+          }
+        },
+        'doc': {
+          description: 'Word 文件',
+          accept: {
+            'application/msword': ['.doc']
+          }
+        },
+        'docx': {
+          description: 'Word 文件',
+          accept: {
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
+          }
+        }
+      }
+
+      const handle = await window.showSaveFilePicker({
+        suggestedName: `我的论文.${ext}`,
+        types: [fileTypes[ext] || {
+          description: '所有文件',
+          accept: {
+            '*/*': [`.${ext}`]
+          }
         }]
       })
 
-      const response = await fetch(downloadUrl, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-      
+      const response = await fetch(downloadUrl)
+
       if (!response.ok) throw new Error('下载失败')
-      
+
       const blob = await response.blob()
-      
+
       // 写入文件
       const writable = await handle.createWritable()
       await writable.write(blob)
       await writable.close()
-      
+
       ElMessage.success('下载成功')
     } catch (error) {
+      // 用户取消选择或浏览器不支持，使用传统下载方式
       if (error.name === 'AbortError') {
         // 用户取消了保存对话框
         return
       }
-      throw error
+
+      // 传统下载方式
+      const response = await fetch(downloadUrl)
+
+      if (!response.ok) throw new Error('下载失败')
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `我的论文.${ext}`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      ElMessage.success('下载成功')
     }
   } catch (error) {
     console.error('下载论文失败:', error)
-    // 如果不支持 showSaveFilePicker，回退到传统下载方式
-    if (error.name === 'TypeError' && !window.showSaveFilePicker) {
-      try {
-        const response = await fetch(downloadUrl, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        })
-        
-        if (!response.ok) throw new Error('下载失败')
-        
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = '我的论文.pdf'
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
-        ElMessage.success('下载成功')
-      } catch (e) {
-        ElMessage.error('下载失败')
-      }
-    } else {
-      ElMessage.error('下载失败')
-    }
+    ElMessage.error('下载失败')
   }
 }
 
@@ -363,6 +353,7 @@ onMounted(() => {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -431,4 +422,4 @@ onMounted(() => {
   color: #909399;
   padding: 20px;
 }
-</style> 
+</style>

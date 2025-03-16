@@ -1,12 +1,11 @@
 <template>
   <div class="my-selection-container">
     <h2>我的选题</h2>
-
     <div v-if="selectedTopics && selectedTopics.length > 0">
       <el-card v-for="topic in selectedTopics" :key="topic.id" class="topic-card">
         <template #header>
           <div class="card-header">
-            <h3>{{ topic.title }}</h3>
+            <h3>{{ topic.title }}</h3> <!-- TopicSelection是中间表  -->
             <el-tag :type="getStatusType(topic.students[0]?.TopicSelection?.status)">
               {{ getStatusText(topic.students[0]?.TopicSelection?.status) }}
             </el-tag>
@@ -33,7 +32,7 @@
         </div>
       </el-card>
     </div>
-
+    <!-- 注意v-else的用法 -->
     <el-empty v-else description="暂未选择课题" />
   </div>
 </template>

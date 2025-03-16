@@ -39,4 +39,12 @@ export const saveAnnotations = (thesisId, annotations) => {
     method: 'post',
     data: { annotations }
   })
+}
+
+export const downloadThesis = (thesisId) => {
+  return request({
+    url: `/api/thesis/${thesisId}/download`,
+    method: 'get',
+    responseType: 'blob'
+  })
 } 
