@@ -47,4 +47,23 @@ export const downloadThesis = (thesisId) => {
     method: 'get',
     responseType: 'blob'
   })
+}
+
+export const uploadAnnotatedDocument = (thesisId, formData) => {
+  return request({
+    url: `/api/thesis/${thesisId}/annotated-document`,
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
+export const downloadAnnotatedDocument = (thesisId) => {
+  return request({
+    url: `/api/thesis/${thesisId}/annotated-document/download`,
+    method: 'get',
+    responseType: 'blob'
+  })
 } 

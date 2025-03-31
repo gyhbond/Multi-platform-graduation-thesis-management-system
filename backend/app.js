@@ -13,7 +13,13 @@ const thesisRouter = require('./routes/thesis')
 const userRouter = require('./routes/user')
 
 // 基础中间件
-app.use(cors())
+app.use(cors())  //解决跨域,当 app.use() ​不指定路径参数时，中间件会作用于 ​所有请求​（无论请求路径或 HTTP 方法），此时所有请求处理流程都会经过该中间件;若 app.use() 指定路径参数（如 app.use('/api', middleware)），则仅当请求路径 ​以该路径开头 时才会触发中间件
+// Express 中间件按注册顺序依次执行。若全局中间件注册在路由之后，则不会生效
+//     app.use(globalMiddleware);  // 先注册全局中间件
+//     app.get('/route', routeHandler);  // 再定义路由
+// 中间件必须调用 next() 将控制权传递给下一个中间件或路由，否则请求会被挂起
+
+
 app.use(express.json())  //这是Express的一个内置中间件，用于解析请求体中的JSON数据。当客户端发送POST或PUT请求，并且请求头Content-Type设置为application/json时，这个中间件会将请求体中的JSON字符串转换为JavaScript对象，并挂载到req.body上，供后续的路由处理函数使用。
 
 // 配置静态文件服务，确保上传目录可以访问

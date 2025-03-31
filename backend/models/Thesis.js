@@ -43,6 +43,16 @@ const Thesis = sequelize.define('Thesis', {
     type: DataTypes.JSON,
     defaultValue: [],
     comment: '论文批注'
+  },
+  annotated_file_url: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: '批注版文档路径'
+  },
+  has_annotated_file: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    comment: '是否有批注版文档'
   }
 }, {
   tableName: 'theses',

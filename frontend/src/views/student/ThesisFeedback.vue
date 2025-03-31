@@ -62,9 +62,16 @@
             下载我的论文
           </el-button>
         </div>
+
+        <!-- 如果有批注版文档，添加下载按钮 -->
+        <template v-if="thesis.has_annotated_file">
+          <el-button type="success" @click="handleDownloadAnnotated">
+            下载批注版文档
+          </el-button>
+        </template>
       </el-card>
 
-      <!-- 批注查看对话框 -->
+      <!-- 批注查看对话框 fillscreen字面意思打开满屏对话框-->
       <el-dialog v-model="annotationDialogVisible" title="论文批注" width="90%" :fullscreen="true">
         <div class="annotation-container">
           <div class="pdf-viewer">
@@ -72,17 +79,9 @@
               <div class="word-file-notice">
                 <el-empty description="Word文档暂不支持在线预览">
                   <template #image>
-                    <el-icon :size="48" color="#909399">
+                    <el-icon :sawadize="48" color="#909399">
                       <Document />
                     </el-icon>
-                  </template>
-                  <template #extra>
-                    <div class="document-notice-actions">
-                      <p class="notice-text">如需查看文档和老师的批注，请下载文档后使用Office或WPS软件打开</p>
-                      <el-button type="primary" @click="handleDownload">
-                        下载文档
-                      </el-button>
-                    </div>
                   </template>
                 </el-empty>
               </div>
@@ -98,6 +97,14 @@
                 </div>
               </div>
               <div v-show="!pdfLoading">
+                <!-- ref="pdfViewer"在 Vue 中注册模板引用，通过 this.$refs.pdfViewer 直接操作该 <iframe> DOM 元素。
+                frameborder="0"样式优化：移除默认边框，使嵌入内容视觉上更无缝。
+                事件绑定：@load="handlePdfLoad"iframe 内容（PDF 或错误页）加载完成时。
+                  @error="handlePdfError"资源加载失败（如 URL 无效、网络断开、跨域限制）。
+                  它们两个都为系统自带的
+                  为何这段代码可以实现pdf的预览效果？ 
+                  现代浏览器（如 Chrome、Edge、Firefox）原生集成了 PDF 查看器，当浏览器检测到请求的 URL 返回的 Content-Type 为 application/pdf 时，会自动触发内置的 PDF 渲染引擎。通过 iframe 的 src 属性加载 PDF 文件，实际上是将 PDF 渲染流程委托给浏览器
+                  -->
                 <iframe ref="pdfViewer" :src="pdfUrl" width="100%" height="100%" frameborder="0" @load="handlePdfLoad"
                   @error="handlePdfError"></iframe>
               </div>
@@ -186,7 +193,7 @@ const pdfUrl = computed(() => {
 const isWordFile = computed(() => {
   if (!thesis.value || !thesis.value.file_url) return false
   const ext = thesis.value.file_url.toLowerCase()
-  return ext.endsWith('.doc') || ext.endsWith('.docx')
+  return ext.endsWith('.doc') || ext.endsWith('.docx')  //通过 字符串.endsWith(目标字符串) 判断字符串是否以特定后缀结尾
 })
 
 const pdfLoading = ref(true)
@@ -234,7 +241,7 @@ const handleDownload = async () => {
     const token = localStorage.getItem('token')
     const downloadUrl = `${baseUrl}/api/thesis/${thesis.value.id}/download?token=${token}`
 
-    // 获取文件扩展名
+    // 获取文件扩展名,例如 pdf,doc,docx
     const ext = thesis.value.file_url.split('.').pop().toLowerCase()
 
     // 尝试使用现代文件系统API
@@ -244,7 +251,7 @@ const handleDownload = async () => {
         'pdf': {
           description: 'PDF 文件',
           accept: {
-            'application/pdf': ['.pdf']
+            'application/pdf': ['.pdf']  //MIME 类型
           }
         },
         'doc': {
@@ -261,13 +268,23 @@ const handleDownload = async () => {
         }
       }
 
-      // 打开保存对话框
+      // window.showSaveFilePicker() 是 File System Access API 中的方法，允许网页通过浏览器原生对话框让用户选择文件保存位置，并直接写入内容，返回文件句柄，然后就可以直接写入文件内容。返回文件句柄，而不是文件路径，所以需要使用 File System Access API 的 createWritable() 方法来获取文件写入句柄，然后再写入文件内容。
+      // 什么是 MIME 类型？
+      // 功能：通过一个字符串（如 text / html）精确描述文件的 内容类型 和 子类型。
+
+      // 格式：类型 / 子类型，例如：
+
+      // text / plain（纯文本）
+      // image / png（PNG 图片）
+      // application / pdf（PDF 文档）
+      // video / mp4（MP4 视频）
+
       const handle = await window.showSaveFilePicker({
-        suggestedName: `我的论文.${ext}`,
+        suggestedName: `我的论文.${ext}`,   // 推荐文件名（用户可修改）
         types: [fileTypes[ext] || {
-          description: '所有文件',
-          accept: {
-            '*/*': [`.${ext}`]
+          description: '所有文件',  // 文件类型描述,体现在保存对话框的文件类型列表中
+          accept: {    // MIME 类型映射
+            '*/*': [`.${ext}`]  // */*MIME 类型通配符：表示接受所有类型的文件        [.${ext}]，强制指定扩展名：无论用户输入什么文件名，默认追加扩展名 .${ext}
           }
         }]
       })
@@ -278,7 +295,7 @@ const handleDownload = async () => {
       const response = await fetch(downloadUrl)
 
       if (!response.ok) throw new Error('下载失败')
-
+      //blob是二进制对象，blob对象可以创建一个文件对象，然后写入到文件中
       const blob = await response.blob()
 
       // 写入文件
@@ -313,13 +330,16 @@ const handleDownload = async () => {
         if (!response.ok) throw new Error('下载失败')
 
         const blob = await response.blob()
+        //为 Blob 生成一个临时 URL,让浏览器可以通过普通 URL 访问内存中的文件数据。
         const url = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
+        //download 属性指定下载后的文件名
         link.download = `我的论文.${ext}`
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
+        //释放临时 URL 内存
         window.URL.revokeObjectURL(url)
         ElMessage.success('下载成功')
       } else {
@@ -379,6 +399,92 @@ watch(thesis, () => {
 onMounted(() => {
   fetchThesis()
 })
+
+// 添加下载批注版文档的函数
+const handleDownloadAnnotated = async () => {
+  try {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+    const token = localStorage.getItem('token')
+    const downloadUrl = `${baseUrl}/api/thesis/${thesis.value.id}/annotated-document/download?token=${token}`
+
+    // 获取文件扩展名
+    const ext = thesis.value.annotated_file_url.split('.').pop().toLowerCase()
+
+    // 尝试使用现代文件系统API
+    try {
+      // 根据文件类型配置选项
+      const fileTypes = {
+        'pdf': {
+          description: 'PDF 文件',
+          accept: { 'application/pdf': ['.pdf'] }
+        },
+        'doc': {
+          description: 'Word 文档',
+          accept: { 'application/msword': ['.doc'] }
+        },
+        'docx': {
+          description: 'Word 文档',
+          accept: { 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'] }
+        }
+      }
+
+      // 弹出保存对话框
+      const handle = await window.showSaveFilePicker({
+        suggestedName: `论文批注版.${ext}`,
+        types: [fileTypes[ext] || {
+          description: '文档文件',
+          accept: { 'application/octet-stream': [`.${ext}`] }
+        }]
+      })
+
+      // 创建可写流
+      const writable = await handle.createWritable()
+
+      // 获取文件内容
+      const response = await fetch(downloadUrl)
+      const blob = await response.blob()
+
+      // 写入文件并关闭
+      await writable.write(blob)
+      await writable.close()
+
+      ElMessage.success('下载成功')
+    } catch (error) {
+      // 如果不支持File System Access API或用户取消，回退到传统方式
+      if (error.name !== 'AbortError') {
+        ElMessageBox.confirm(
+          '您的浏览器不支持选择保存位置，文件将下载到默认下载文件夹',
+          '提示',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'info'
+          }
+        )
+
+        // 用户确认后开始下载
+        ElMessage.info('正在下载文件...')
+        const response = await fetch(downloadUrl)
+
+        if (!response.ok) throw new Error('下载失败')
+
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `论文批注版.${ext}`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+        ElMessage.success('下载成功')
+      }
+    }
+  } catch (error) {
+    console.error('下载批注版文档失败:', error)
+    ElMessage.error('下载失败')
+  }
+}
 </script>
 
 <style scoped>
@@ -486,9 +592,27 @@ onMounted(() => {
 .pdf-viewer {
   flex: 2;
   height: 100%;
+  /* 确保占满父容器高度 */
+  min-height: 80vh;
+  /* 添加最小高度 */
   border: 1px solid #dcdfe6;
   border-radius: 4px;
   overflow: hidden;
+  position: relative;
+  /* 添加相对定位 */
+}
+
+/* 确保iframe占满整个容器 */
+.pdf-viewer iframe {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  /* 绝对定位使其填满容器 */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: none;
 }
 
 .annotation-panel {
@@ -597,5 +721,26 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 当在小屏幕上显示时调整高度 */
+@media screen and (max-width: 768px) {
+  .annotation-container {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 120px);
+  }
+
+  .pdf-viewer {
+    flex: none;
+    height: 70vh;
+    /* 在移动设备上设置为视口高度的70% */
+    min-height: 400px;
+  }
+
+  .annotation-panel {
+    height: auto;
+    min-height: 300px;
+  }
 }
 </style>

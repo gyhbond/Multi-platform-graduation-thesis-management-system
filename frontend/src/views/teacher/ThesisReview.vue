@@ -70,18 +70,28 @@
         <div class="pdf-viewer">
           <template v-if="isWordFile">
             <div class="word-file-notice">
-              <el-empty description="Word文档暂不支持在线预览和批注">
+              <el-empty description="Word文档暂不支持在线批注">
                 <template #image>
                   <el-icon :size="48" color="#909399">
                     <Document />
                   </el-icon>
                 </template>
                 <template #extra>
-                  <div class="document-notice-actions">
-                    <p class="notice-text">请下载文档后使用Office或WPS等软件进行批注</p>
+                  <div class="word-annotation-actions">
                     <el-button type="primary" @click="handleDownload(currentPdfThesis)">
                       下载文档
                     </el-button>
+                    <el-divider>本地批注后上传</el-divider>
+                    <el-upload class="annotated-file-upload" :action="uploadAnnotatedUrl" :headers="uploadHeaders"
+                      :on-success="handleAnnotatedUploadSuccess" :on-error="handleAnnotatedUploadError"
+                      :before-upload="beforeAnnotatedUpload" accept=".doc,.docx,.pdf">
+                      <el-button type="success">上传批注版文档</el-button>
+                      <template #tip>
+                        <div class="el-upload__tip">
+                          请在本地添加批注后上传，支持 Word 和 PDF 格式
+                        </div>
+                      </template>
+                    </el-upload>
                   </div>
                 </template>
               </el-empty>
@@ -196,6 +206,15 @@ const pdfLoading = ref(true)
 const pdfError = ref(false)
 const pdfErrorMessage = ref('文档加载失败，请尝试重新加载或下载查看')
 const pdfViewer = ref(null)
+
+const uploadAnnotatedUrl = computed(() => {
+  return currentPdfThesis.value ?
+    `${baseUrl}/api/thesis/${currentPdfThesis.value.id}/annotated-document` : ''
+})
+
+const uploadHeaders = {
+  Authorization: `Bearer ${localStorage.getItem('token')}`
+}
 
 const getStatusType = (status) => {
   const types = {
@@ -487,6 +506,37 @@ const reloadPdf = () => {
   }
 }
 
+const handleAnnotatedUploadSuccess = (response) => {
+  if (response.success) {
+    ElMessage.success('批注版文档上传成功')
+    // 刷新论文列表
+    fetchThesisList()
+  } else {
+    ElMessage.error(response.message || '上传失败')
+  }
+}
+
+const handleAnnotatedUploadError = (error) => {
+  console.error('上传批注版文档失败:', error)
+  ElMessage.error('上传失败，请重试')
+}
+
+const beforeAnnotatedUpload = (file) => {
+  const validTypes = ['application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf']
+  const isValidType = validTypes.includes(file.type)
+  const isLt10M = file.size / 1024 / 1024 < 10
+
+  if (!isValidType) {
+    ElMessage.error('只能上传 Word 或 PDF 文档')
+    return false
+  }
+  if (!isLt10M) {
+    ElMessage.error('文件大小不能超过 10MB')
+    return false
+  }
+  return true
+}
+
 watch(currentPdfThesis, () => {
   pdfLoading.value = true
   pdfError.value = false
@@ -675,6 +725,16 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.word-annotation-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.annotated-file-upload {
+  width: 100%;
 }
 
 /* 移动端样式优化 */

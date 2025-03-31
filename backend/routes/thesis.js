@@ -299,32 +299,39 @@ router.get('/:id/download', auth.authenticate, async (req, res) => {
     }
 
     // 根据文件扩展名设置正确的 Content-Type
-    const ext = path.extname(filePath).toLowerCase()
+    //extname:Node.js 的 path 模块提供了该方法，用于获取文件路径的扩展名
+    const ext = path.extname(filePath).toLowerCase()  // 获取文件扩展名，并转换为小写
     const mimeTypes = {
       '.pdf': 'application/pdf',
       '.doc': 'application/msword',
       '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     }
-    const contentType = mimeTypes[ext] || 'application/octet-stream'
+    const contentType = mimeTypes[ext] || 'application/octet-stream' // application/octet-stream 是一个通用的 MIME 类型，表示未知的二进制文件，浏览器会将其视为下载文件
 
     // 生成合适的文件名，包含学生姓名和扩展名
     const fileName = `${thesis.student.name}-thesis${ext}`
 
-    // 使用 encodeURIComponent 处理文件名中的特殊字符
+    // 使用 encodeURIComponent 处理文件名中的特殊字符，encodeURIComponent 是 JavaScript 内置函数，将字符串中的所有非 URL 安全字符替换为 % 后跟十六进制值
     const encodedFileName = encodeURIComponent(fileName)
 
     // 设置响应头，强制下载
     res.setHeader('Content-Type', contentType)
+    // 设置 Content-Disposition 头 ,attachment：告诉浏览器将响应视为下载文件，而不是直接显示内容;filename*=UTF-8''${encodedFileName}：使用 RFC 5987 标准编码文件名，支持非 ASCII 字符。
     res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodedFileName}`)
 
-    // 使用文件流发送文件
+    // 使用文件流发送文件 fs.createReadStream 是 Node.js 中用于以流（Stream）形式读取文件的核心方法，它属于 fs 模块（文件系统模块）。通过流式读取，可以高效处理大文件或实时数据，避免一次性加载整个文件到内存。
     const fileStream = fs.createReadStream(filePath)
+    //将文件可读流（fileStream）通过管道（pipe）连接到 HTTP 响应对象（res，通常来自 Express 或原生 HTTP 模块）,实现边读文件边发送数据到客户端
+
+    // 如果服务器没有设置 Content-Disposition 头，浏览器会根据 Content-Type 头决定如何处理文件
+    //如果服务器设置了 Content-Disposition 头为 attachment，浏览器会强制下载文件
+    // 结果：浏览器弹出下载对话框
     fileStream.pipe(res)
 
-    // 处理流错误
+    // 处理流错误,错误时触发
     fileStream.on('error', (error) => {
       console.error('文件流错误:', error)
-      if (!res.headersSent) {
+      if (!res.headersSent) {  //res.headersSent用于检查响应头是否已经发送，如果未发送，则返回false，表示可以继续发送响应头。如果已经发送，则返回true，表示不能再发送响应头。
         res.status(500).json({
           success: false,
           message: '下载失败'
@@ -379,6 +386,125 @@ router.post('/:id/annotations', auth.teacherOnly, async (req, res) => {
       success: false,
       message: '保存批注失败'
     })
+  }
+})
+
+// 添加上传批注版文档的路由
+router.post('/:id/annotated-document', auth.teacherOnly, upload.single('annotatedThesis'), async (req, res) => {
+  try {
+    const thesisId = req.params.id
+
+    // 查找论文
+    const thesis = await Thesis.findOne({
+      where: { id: thesisId },
+      include: [
+        { model: Topic, as: 'topic', where: { teacherId: req.user.id } }
+      ]
+    })
+
+    if (!thesis) {
+      return res.status(404).json({
+        success: false,
+        message: '论文不存在或无权访问'
+      })
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: '请选择要上传的批注版文档'
+      })
+    }
+
+    // 如果已存在批注版文档，删除旧文件
+    if (thesis.annotated_file_url) {
+      const oldFilePath = path.join(__dirname, '..', 'uploads', thesis.annotated_file_url)
+      if (fs.existsSync(oldFilePath)) {
+        fs.unlinkSync(oldFilePath)
+      }
+    }
+
+    // 更新批注版文档路径
+    const fileUrl = `thesis/${path.basename(req.file.path)}`
+    await thesis.update({
+      annotated_file_url: fileUrl,
+      has_annotated_file: true
+    })
+
+    res.json({
+      success: true,
+      message: '批注版文档上传成功'
+    })
+  } catch (error) {
+    console.error('上传批注版文档失败:', error)
+    res.status(500).json({
+      success: false,
+      message: '上传批注版文档失败'
+    })
+  }
+})
+
+// 下载批注版文档
+router.get('/:id/annotated-document/download', async (req, res) => {
+  try {
+    const thesis = await Thesis.findByPk(req.params.id, {
+      include: [
+        { model: User, as: 'student', attributes: ['name'] }
+      ]
+    })
+
+    if (!thesis || !thesis.annotated_file_url) {
+      return res.status(404).json({
+        success: false,
+        message: '批注版文档不存在'
+      })
+    }
+
+    const filePath = path.join(__dirname, '..', 'uploads', thesis.annotated_file_url)
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: '文件不存在'
+      })
+    }
+
+    // 从文件路径获取扩展名以确定内容类型
+    const ext = path.extname(filePath).toLowerCase()
+    const contentType = ext === '.pdf' ? 'application/pdf' :
+      ext === '.doc' ? 'application/msword' :
+        ext === '.docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' :
+          'application/octet-stream'
+
+    // 生成文件名
+    const fileName = `${thesis.student.name}-论文(批注版)${ext}`
+    const encodedFileName = encodeURIComponent(fileName)
+
+    // 设置响应头
+    res.setHeader('Content-Type', contentType)
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodedFileName}`)
+
+    // 使用文件流发送文件
+    const fileStream = fs.createReadStream(filePath)
+    fileStream.pipe(res)
+
+    fileStream.on('error', (error) => {
+      console.error('下载批注版文档失败:', error)
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          message: '下载批注版文档失败'
+        })
+      }
+    })
+  } catch (error) {
+    console.error('下载批注版文档失败:', error)
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: '下载批注版文档失败'
+      })
+    }
   }
 })
 
