@@ -10,16 +10,16 @@ router.get('/topics', auth.teacherOnly, async (req, res) => {
   try {
     const topics = await Topic.findAll({
       where: { teacherId: req.user.id },
-      include: [{
+      include: [{   //关联表（中间表）的查询依赖于预先设置的外键。
         model: User,
         as: 'students',
         attributes: ['id', 'name', 'student_id'],
-        through: {
-          model: TopicSelection,
-          attributes: ['status']
+        through: {        // 配置多对多关联的中间表（TopicSelection）
+          model: TopicSelection,  // 指定中间模型为 TopicSelection  
+          attributes: ['status']    // 返回中间表的 status 字段（例如学生申请主题的状态）
         }
       }],
-      order: [['created_at', 'DESC']]
+      order: [['created_at', 'DESC']]   // 按 created_at 字段降序排列，最新创建的主题在前
     })
 
     // 格式化返回数据
@@ -214,8 +214,8 @@ router.get('/topics/:id', auth.teacherOnly, async (req, res) => {
 // 审核学生选题
 router.put('/topics/:topicId/selections/:studentId', auth.teacherOnly, async (req, res) => {
   try {
-    const { topicId, studentId } = req.params
-    const { status } = req.body
+    const { topicId, studentId } = req.params      //url中
+    const { status } = req.body   //data中
 
     // 检查课题是否属于该教师
     const topic = await Topic.findOne({

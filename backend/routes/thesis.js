@@ -311,7 +311,7 @@ router.get('/:id/download', auth.authenticate, async (req, res) => {
     // 生成合适的文件名，包含学生姓名和扩展名
     const fileName = `${thesis.student.name}-thesis${ext}`
 
-    // 使用 encodeURIComponent 处理文件名中的特殊字符，encodeURIComponent 是 JavaScript 内置函数，将字符串中的所有非 URL 安全字符替换为 % 后跟十六进制值
+    // 使用 encodeURIComponent 处理文件名中的特殊字符，encodeURIComponent 是 JavaScript 内置函数，将字符串中的所有非 URL 安全字符替换为 % 后跟十六进制值,一般是为了处理中文
     const encodedFileName = encodeURIComponent(fileName)
 
     // 设置响应头，强制下载

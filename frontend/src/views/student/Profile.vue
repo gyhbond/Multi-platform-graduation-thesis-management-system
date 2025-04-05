@@ -67,37 +67,18 @@
         </div>
       </template>
 
-      <el-form 
-        :model="passwordForm" 
-        :rules="passwordRules" 
-        ref="passwordFormRef" 
-        label-width="100px"
-      >
+      <el-form :model="passwordForm" :rules="passwordRules" ref="passwordFormRef" label-width="100px">
         <el-form-item label="原密码" prop="oldPassword">
-          <el-input 
-            v-model="passwordForm.oldPassword" 
-            type="password" 
-            show-password
-            placeholder="请输入原密码"
-          />
+          <!-- show-password：当 show-password 设置为 true 时，输入框右侧会显示眼睛图标，点击可切换密码的显示状态（明文/密文）。 -->
+          <el-input v-model="passwordForm.oldPassword" type="password" show-password placeholder="请输入原密码" />
         </el-form-item>
 
         <el-form-item label="新密码" prop="newPassword">
-          <el-input 
-            v-model="passwordForm.newPassword" 
-            type="password" 
-            show-password
-            placeholder="请输入新密码"
-          />
+          <el-input v-model="passwordForm.newPassword" type="password" show-password placeholder="请输入新密码" />
         </el-form-item>
 
         <el-form-item label="确认密码" prop="confirmPassword">
-          <el-input 
-            v-model="passwordForm.confirmPassword" 
-            type="password" 
-            show-password
-            placeholder="请再次输入新密码"
-          />
+          <el-input v-model="passwordForm.confirmPassword" type="password" show-password placeholder="请再次输入新密码" />
         </el-form-item>
 
         <el-form-item>
@@ -199,7 +180,7 @@ const fetchProfile = async () => {
   try {
     const response = await getProfile()
     if (response.success) {
-      Object.assign(profileForm, response.data)
+      Object.assign(profileForm, response.data)  //浅拷贝 <-  浅拷贝会创建一个新对象，但新对象的属性值（尤其是引用类型的属性）与原始对象共享同一内存地址。这意味着修改浅拷贝对象的嵌套属性时，原始对象的对应属性也会被影响
       originalProfile.value = { ...response.data }
     }
   } catch (error) {
@@ -217,7 +198,7 @@ const handleSubmit = async () => {
         if (response.success) {
           ElMessage.success('保存成功')
           isEditing.value = false
-          originalProfile.value = { ...profileForm }
+          originalProfile.value = { ...profileForm }  //修改源数据
         }
       } catch (error) {
         ElMessage.error(error.message || '保存失败')
@@ -241,13 +222,13 @@ const handleChangePassword = async () => {
           password: passwordForm.newPassword,
           oldPassword: passwordForm.oldPassword
         })
-        
+
         if (response.success) {
           ElMessage.success('密码修改成功')
           passwordForm.oldPassword = ''
           passwordForm.newPassword = ''
           passwordForm.confirmPassword = ''
-          passwordFormRef.value.resetFields()
+          passwordFormRef.value.resetFields()//将表单字段重置为初始值
         }
       } catch (error) {
         ElMessage.error(error.response?.data?.message || '密码修改失败')

@@ -8,7 +8,7 @@
       <el-form-item label="课题名称" prop="title">
         <el-input v-model="topicForm.title" placeholder="请输入课题名称" />
       </el-form-item>
-
+      <!-- rows属性本质是HTML标准中<textarea>元素的属性，用于控制文本输入框的默认高度： -->
       <el-form-item label="课题描述" prop="description">
         <el-input v-model="topicForm.description" type="textarea" :rows="4" placeholder="请输入课题描述" />
       </el-form-item>
@@ -22,6 +22,8 @@
       </el-form-item>
 
       <el-form-item label="截止日期" prop="deadline">
+        <!-- :disabled-date	指定一个函数，返回 true 时禁用对应日期（如禁止选择过去日期）
+         :default-time	设置选择日期后的默认时间（如自动填充为 23:59:59） -->
         <el-date-picker v-model="topicForm.deadline" type="datetime" placeholder="选择截止日期" :disabled-date="disabledDate"
           :default-time="defaultTime" />
       </el-form-item>
@@ -72,11 +74,18 @@ const rules = {
   ]
 }
 
-// 日期选择器配置
-const disabledDate = (time) => {
-  return time.getTime() < Date.now()
+// 日期选择器配置，禁用今天之前的日期
+const disabledDate = (time) => {  //time 参数是用户尝试选择的日期对应的 Date 对象。
+  return time.getTime() < Date.now()  //time.getTime()是1970年1月1日0时0分0秒到所选时间的毫秒数,Date.now()是1970年1月1日0时0分0秒到当前时间的毫秒数
 }
-
+//当用户仅选择日期（未手动选择时间）时，自动填充时间为 23:59:59。
+// 日期部分被忽略：2000-01-01 仅用于提取时间部分（23: 59: 59），实际日期以用户选择的日期为准。
+// 2000：年份（无实际作用）
+// 0：月份（0 代表 1 月）
+// 1：日期（1 号）
+// 23：小时（23 点）  
+// 59：分钟（59 分）
+// 59：秒（59 秒）
 const defaultTime = new Date(2000, 0, 1, 23, 59, 59)
 
 // 提交表单前格式化日期
@@ -88,9 +97,15 @@ const handleSubmit = async () => {
       try {
         const formData = {
           ...topicForm,
+          //   功能：将 Date 对象转换为符合国际标准的字符串（UTC 时间）。
+          //   格式：YYYY- MM - DDTHH: mm: ss.sssZ 示例：2023 - 10-05T14: 30:00.000Z
+          // YYYY - MM - DD：年 - 月 - 日
+          // T：日期与时间的分隔符
+          // HH: mm: ss.sss：时: 分: 秒.毫秒
+          // Z：表示 UTC 时区（协调世界时）
           deadline: topicForm.deadline.toISOString() // 确保日期格式正确
         }
-        
+
         if (isEdit.value) {
           await updateTopic(route.query.id, formData)
         } else {
@@ -110,7 +125,7 @@ const goBack = () => {
   router.push('/teacher/topics')
 }
 
-// 如果是编辑模式，获取课题详情
+// 如果是编辑模式,获取课题详情(即isEdit为true)
 const fetchTopicDetail = async (id) => {
   try {
     const response = await getTopicDetail(id)

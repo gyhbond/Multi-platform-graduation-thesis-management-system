@@ -81,6 +81,7 @@
                     <el-button type="primary" @click="handleDownload(currentPdfThesis)">
                       下载文档
                     </el-button>
+                    <!-- 分割线 -->
                     <el-divider>本地批注后上传</el-divider>
                     <el-upload class="annotated-file-upload" :action="uploadAnnotatedUrl" :headers="uploadHeaders"
                       :on-success="handleAnnotatedUploadSuccess" :on-error="handleAnnotatedUploadError"

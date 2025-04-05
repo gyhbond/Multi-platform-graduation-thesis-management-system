@@ -25,28 +25,16 @@
         <el-table-column label="选题学生" min-width="200">
           <template #default="{ row }">
             <div v-if="row.students && row.students.length > 0">
-              <div
-                v-for="student in row.students"
-                :key="student.id"
-                class="student-item"
-              >
+              <div v-for="student in row.students" :key="student.id" class="student-item">
                 <el-tag :type="getSelectionStatusType(student.selectionStatus)">
                   {{ student.name }} ({{ student.studentId }})
                   {{ getSelectionStatusText(student.selectionStatus) }}
                 </el-tag>
                 <div class="student-actions" v-if="student.selectionStatus === 'pending'">
-                  <el-button 
-                    type="success" 
-                    size="small"
-                    @click="handleReview(row.id, student.id, 'approved')"
-                  >
+                  <el-button type="success" size="small" @click="handleReview(row.id, student.id, 'approved')">
                     通过
                   </el-button>
-                  <el-button 
-                    type="danger" 
-                    size="small"
-                    @click="handleReview(row.id, student.id, 'rejected')"
-                  >
+                  <el-button type="danger" size="small" @click="handleReview(row.id, student.id, 'rejected')">
                     拒绝
                   </el-button>
                 </div>
@@ -80,35 +68,28 @@
             </el-tag>
           </div>
         </template>
-        
+
         <div class="card-content">
           <p class="description">{{ topic.description }}</p>
           <div class="count-info">
             已选人数: {{ topic.selectedCount }}/{{ topic.maxStudents }}
           </div>
-          
+
           <div class="students-section" v-if="topic.students?.length">
             <h4>选题学生:</h4>
             <div class="student-tags">
-              <el-tag
-                v-for="student in topic.students"
-                :key="student.id"
-                :type="getSelectionStatusType(student.selectionStatus)"
-                class="student-tag"
-              >
+              <el-tag v-for="student in topic.students" :key="student.id"
+                :type="getSelectionStatusType(student.selectionStatus)" class="student-tag">
                 {{ student.name }} ({{ student.studentId }})
                 {{ getSelectionStatusText(student.selectionStatus) }}
               </el-tag>
             </div>
           </div>
-          
+
           <div class="actions">
             <el-button size="small" @click="handleEdit(topic)">编辑</el-button>
-            <el-button
-              size="small"
-              :type="topic.status === 'open' ? 'danger' : 'success'"
-              @click="handleToggleStatus(topic)"
-            >
+            <el-button size="small" :type="topic.status === 'open' ? 'danger' : 'success'"
+              @click="handleToggleStatus(topic)">
               {{ topic.status === 'open' ? '关闭' : '开放' }}
             </el-button>
           </div>
@@ -187,7 +168,7 @@ const handleApprove = async (topicId, studentId) => {
     await ElMessageBox.confirm('确定通过该学生的选题申请吗？', '确认', {
       type: 'warning'
     })
-    
+
     const response = await updateTopicSelection(topicId, studentId, 'approved')
     if (response.success) {
       ElMessage.success('已通过选题申请')
@@ -205,7 +186,7 @@ const handleReject = async (topicId, studentId) => {
     await ElMessageBox.confirm('确定拒绝该学生的选题申请吗？', '确认', {
       type: 'warning'
     })
-    
+
     const response = await updateTopicSelection(topicId, studentId, 'rejected')
     if (response.success) {
       ElMessage.success('已拒绝选题申请')
@@ -227,7 +208,7 @@ const goToCreate = () => {
 const handleEdit = (row) => {
   router.push({
     path: '/teacher/create-topic',
-    query: { id: row.id }
+    query: { id: row.id }   //这里是课题id
   })
 }
 
@@ -331,6 +312,10 @@ onMounted(() => {
 .mobile-list {
   display: none;
 }
+
+/* 
+@media CSS媒体查询规则声明 screen 目标设备类型为屏幕（排除打印机等设备） (max-width: 768px) 当浏览器视口宽度 ≤ 768像素 时生效 and 逻辑运算符，表示同时满足多个条件  这里表示手机设备的情况
+*/
 
 @media screen and (max-width: 768px) {
   .pc-table {

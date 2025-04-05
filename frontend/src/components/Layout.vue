@@ -1,20 +1,18 @@
 <template>
+  <!-- 用于布局的容器组件，方便快速搭建页面的基本结构：
+<el-container>：外层容器。 当子元素中包含 <el-header> 或 <el-footer> 时，全部子元素会垂直上下排列， 否则会水平左右排列。
+<el-header>：顶栏容器。
+<el-aside>：侧边栏容器。
+<el-main>：主要区域容器。
+<el-footer>：底栏容器。 -->
   <el-container class="layout-container">
-    <!-- 移动端抽屉菜单 -->
-    <el-drawer
-      v-model="drawerVisible"
-      direction="ltr"
-      size="200px"
-      :with-header="false"
-    >
-      <el-menu
-        :router="true"
-        :default-active="$route.path"
-        class="el-menu-vertical"
-        :background-color="'#545c64'"
-        :text-color="'#fff'"
-        :active-text-color="'#ffd04b'"
-      >
+    <!-- 移动端抽屉菜单   with-header="false"隐藏默认标题栏（若需要自定义标题，可通过 <template #header> 实现）-->
+    <el-drawer v-model="drawerVisible" direction="ltr" size="200px" :with-header="false">
+      <!-- :router="true:启用 Vue Router 模式，菜单项的 index 值会被视为路由路径（path）。点击菜单项时自动跳转到对应路由 
+       :default-active="$route.path":设置当前激活菜单项的高亮标识。通过绑定当前路由路径 $route.path，确保页面刷新或手动输入 URL 时，菜单项能正确高亮 
+      -->
+      <el-menu :router="true" :default-active="$route.path" class="el-menu-vertical" :background-color="'#545c64'"
+        :text-color="'#fff'" :active-text-color="'#ffd04b'">
         <!-- 所有用户可见 -->
         <el-menu-item index="/home">
           <el-icon>
@@ -45,7 +43,9 @@
               <span>发布课题</span>
             </el-menu-item>
             <el-menu-item index="/teacher/thesis-review">
-              <el-icon><Document /></el-icon>
+              <el-icon>
+                <Document />
+              </el-icon>
               <span>论文审阅</span>
             </el-menu-item>
           </el-sub-menu>
@@ -99,7 +99,7 @@
         </template>
 
         <!-- 管理员菜单 -->
-        <template v-if="userRole === 'admin'">
+        <!-- <template v-if="userRole === 'admin'">
           <el-sub-menu index="admin">
             <template #title>
               <el-icon>
@@ -120,7 +120,7 @@
               <span>课题管理</span>
             </el-menu-item>
           </el-sub-menu>
-        </template>
+        </template> -->
 
         <!-- 个人中心 -->
         <el-menu-item v-if="userRole === 'student'" :index="'/student/profile'">
@@ -135,14 +135,8 @@
 
     <!-- PC端侧边栏 -->
     <el-aside width="200px" class="pc-sidebar">
-      <el-menu
-        :router="true"
-        class="el-menu-vertical"
-        :default-active="$route.path"
-        :background-color="'#545c64'"
-        :text-color="'#fff'"
-        :active-text-color="'#ffd04b'"
-      >
+      <el-menu :router="true" class="el-menu-vertical" :default-active="$route.path" :background-color="'#545c64'"
+        :text-color="'#fff'" :active-text-color="'#ffd04b'">
         <!-- 所有用户可见 -->
         <el-menu-item index="/home">
           <el-icon>
@@ -173,7 +167,9 @@
               <span>发布课题</span>
             </el-menu-item>
             <el-menu-item index="/teacher/thesis-review">
-              <el-icon><Document /></el-icon>
+              <el-icon>
+                <Document />
+              </el-icon>
               <span>论文审阅</span>
             </el-menu-item>
           </el-sub-menu>
@@ -226,7 +222,7 @@
           </el-sub-menu>
         </template>
 
-        <!-- 管理员菜单 -->
+        <!-- 管理员菜单
         <template v-if="userRole === 'admin'">
           <el-sub-menu index="admin">
             <template #title>
@@ -248,7 +244,7 @@
               <span>课题管理</span>
             </el-menu-item>
           </el-sub-menu>
-        </template>
+        </template> -->
 
         <!-- 个人中心 -->
         <el-menu-item v-if="userRole === 'student'" :index="'/student/profile'">
@@ -265,19 +261,21 @@
       <el-header>
         <div class="header-content">
           <!-- 修改移动端菜单按钮 -->
-          <el-button
-            class="mobile-menu-btn"
-            @click="drawerVisible = true"
-          >
-            <el-icon><Menu /></el-icon>
+          <el-button class="mobile-menu-btn" @click="drawerVisible = true">
+            <el-icon>
+              <Menu />
+            </el-icon>
           </el-button>
-          
+
           <span class="title">毕业论文选题系统</span>
           <div class="user-info">
+            <!-- 下拉单 -->
             <el-dropdown>
               <span class="user-dropdown">
                 {{ userName }}
-                <el-icon><ArrowDown /></el-icon>
+                <el-icon>
+                  <ArrowDown />
+                </el-icon>
               </span>
               <template #dropdown>
                 <el-dropdown-menu>
@@ -289,7 +287,7 @@
           </div>
         </div>
       </el-header>
-      
+
       <el-main>
         <router-view></router-view>
       </el-main>
@@ -411,6 +409,10 @@ const handleLogout = () => {
   }
 
   /* 抽屉菜单样式优化 */
+  /* 
+    为什么需要 :deep()？ 当你在 Vue 组件的 <style>标签中添加 scoped 属性时，样式仅作用于当前组件。这是通过给每个 DOM 元素添加唯一属性（如 data-v-xxxxx）实现的
+    :deep() 是 Vue 3 的样式穿透语法，它允许父组件的样式穿透到子组件内部
+  */
   :deep(.el-drawer) {
     background-color: #545c64;
   }

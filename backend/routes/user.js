@@ -58,6 +58,7 @@ router.put('/profile', auth.authenticate, async (req, res) => {
       }
 
       // 验证原密码是否正确
+      //user.validatePassword 是一个用于验证用户密码是否匹配数据库中存储的加密密码的方法。validatePassword 方法会将用户输入的密码通过相同算法加密，并与数据库中的哈希值进行比对 。validatePassword 方法验证用户输入的密码时，通常与数据库中存储 加密后的密码字段（如 password 或 encrypted_password）进行比较
       const isValidPassword = await user.validatePassword(oldPassword)
       if (!isValidPassword) {
         return res.status(400).json({
@@ -91,13 +92,14 @@ router.put('/profile', auth.authenticate, async (req, res) => {
       updateData.password = password // User 模型中的 password 字段已经配置了自动哈希
     }
 
-    // 移除未定义的字段
+    // 移除未定义的字段,防止覆盖无需修改的源数据
     Object.keys(updateData).forEach(key => {
       if (updateData[key] === undefined) {
         delete updateData[key]
       }
     })
-
+    //该方法会根据 user 实例的主键（如 id），在数据库中定位对应的记录，并将 updateData 中的字段值更新到该记录。
+    //执行时会自动生成并运行类似 UPDATE users SET name = 'Ada', age = 30 WHERE id = 123 的 SQL 语句。
     await user.update(updateData)
 
     const updatedUser = await User.findByPk(req.user.id, {
